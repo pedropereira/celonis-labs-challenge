@@ -7,6 +7,8 @@ services:
       - "4200:4200"
     depends_on:
       - backend
+    networks:
+      - celonis
 
   backend:
     build:
@@ -18,7 +20,31 @@ services:
       - NODE_ENV=production
     env_file:
       - ./backend/.env
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - celonis
+
+  database:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=mysecretpassword
+      - POSTGRES_DB=postgres
+    volumes:
+      - ./database/postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - celonis
 
 networks:
   celonis:
+    name: celonis
     driver: bridge
