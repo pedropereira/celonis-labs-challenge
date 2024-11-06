@@ -1,12 +1,33 @@
 # User Service
+
 The users service manages users and also to which tenant they belong.
 New users and tenant can be created and existing ones can be updated or deleted.
 
+## Prerequisites
 
-## Development
-Have a postgres like defined in `.env`.
+- Docker and Docker Compose installed on your system
+- Make (optional, but recommended)
+
+## Running with Docker (Recommended)
+
+Start all services (database, backend, frontend):
+
+```bash
+make up
+```
+
+Once the services are running, the backend service will be available at `http://localhost:3000` and the frontend at `http://localhost:4200`. You can now initialize the database:
+
+```bash
+# Run database migrations and seed data
+docker compose exec backend npx prisma db push
+docker compose exec backend npx prisma db seed
+```
+
+## Local Development Setup (without Docker)
 
 Install dependencies and push and seed the database schema:
+
 ```bash
 yarn install
 npx prisma db push
