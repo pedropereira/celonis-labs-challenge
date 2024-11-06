@@ -1,0 +1,13 @@
+<ng-container *ngIf="!editMode; else edit">
+  <h1>User: {{user?.name}}</h1>
+  <h2>Email: {{user?.email}}</h2>
+</ng-container>
+<ng-template #edit>
+<mat-form-field>
+  <input matInput [(ngModel)]="name" placeholder="Name">
+</mat-form-field>
+</ng-template>
+<button mat-raised-button color="accent" *ngIf="!editMode; else saveButton" (click)="editMode = true">Edit user</button>
+<ng-template #saveButton>
+  <button mat-raised-button color="primary" (click)="save()">Save</button>
+</ng-template>

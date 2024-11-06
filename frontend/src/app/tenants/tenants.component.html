@@ -1,0 +1,7 @@
+<mat-list>
+  <mat-list-item *ngFor="let tenant of tenants">
+    <mat-icon matListItemIcon (click)="deleteTenant(tenant)">delete</mat-icon>
+    {{tenant.name}}
+  </mat-list-item>
+</mat-list>
+<button mat-fab (click)="addTenant()" id="creat-user-button">+</button>

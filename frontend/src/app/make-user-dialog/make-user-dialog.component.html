@@ -1,0 +1,19 @@
+<h1 mat-dialog-title>Create user</h1>
+<div mat-dialog-content>
+  <p>Create a new user</p>
+  <mat-form-field>
+    <mat-label>Name</mat-label>
+    <input matInput [(ngModel)]="name">
+  </mat-form-field>
+  <mat-form-field>
+    <mat-label>Email</mat-label>
+    <input matInput [(ngModel)]="email">
+  </mat-form-field>
+  <p *ngIf="userCreated">
+    User created successfully!
+  </p>
+</div>
+<div mat-dialog-actions>
+  <button mat-flat-button (click)="createUser()" color="primary" #createButton>Save User</button>
+  <button mat-button mat-dialog-close>Close dialog</button>
+</div>
