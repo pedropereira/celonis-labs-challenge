@@ -1,10 +1,13 @@
-import {PrismaClient} from "@prisma/client";
-
-const express = require('express');
-
-var bodyParser = require('body-parser')
+import express from 'express';
+import cors from 'cors';
+import { PrismaClient } from "@prisma/client";
 
 const app = express();
+
+app.use(cors());
+
+// Add JSON body parser
+app.use(express.json());
 
 app.get('/', (req: any, res: any) => {
     res.send('Successful response.');
@@ -82,6 +85,5 @@ app.post('/delete-tenant',(req: any, res: any) => {
     var prisma = new PrismaClient();
     prisma.tenant.deleteMany({where: {name: req.query.name}}).then(() => res.json({status: "success"}))
 });
-
 
 app.listen(3000, () => console.log('Example app is listening on port 3000.'));
