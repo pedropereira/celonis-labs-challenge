@@ -1,6 +1,8 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { PrismaClient } from "@prisma/client";
+import { validateRequest } from './middleware';
+import * as schemas from './schemas';
 
 const app = express();
 const prisma = new PrismaClient();
@@ -12,25 +14,25 @@ app.get('/', (req: any, res: any) => {
     res.send('Successful response.');
 });
 
-app.get('/make-user/:email', async (req: any, res: any) => {
-    if (!req.query.tenantId) {
-        return res.status(400).json({ status: "error", error: "tenantId is required" });
-    }
-
-    var userData = {
+app.get('/make-user/:email',
+    (req: Request, res: Response, next: NextFunction) => {
+      validateRequest(schemas.makeUserSchema)(req, res, next).catch(next);
+    },
+    async (req: Request, res: Response) => {
+      const userData = {
         email: req.params.email,
-        name: req.query.name,
-        tenantId: req.query.tenantId
-    };
+        name: req.query.name as string,
+        tenantId: req.query.tenantId as string
+      };
 
-    try {
-        const user = await prisma.user.create({data: userData});
+      try {
+        const user = await prisma.user.create({ data: userData});
 
         res.status(200).json(user);
-    } catch (error) {
+      } catch (error) {
         res.status(400).json({status: "error", error: error.message});
-    }
-});
+      }
+  });
 
 app.get('/list-users', (req: any, res: any) => {
     prisma.user.findMany().then((users) => res.json(users));
