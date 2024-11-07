@@ -68,14 +68,31 @@ app.get('/make-tenant/:name', (req: Request, res: Response) => {
     prisma.tenant.create({data: tenant}).then(() => res.json({status: "success"}))
 });
 
-app.put('/put-user-to-tenant/:email/:name', async (req: any, res: any) => {
-    const tenant = await prisma.tenant.findFirst({where: {name: req.params.name}});
-    prisma.user.update({
-        where: {email: req.params.email},
-        // @ts-ignore
-        data: {Tenant: {connect: {id: tenant.id}}}
-    }).then(() => res.json({status: "success"}))
-});
+app.put('/put-user-to-tenant/:email/:name',
+    (req: Request, res: Response, next: NextFunction) => {
+      validateRequest(schemas.putUserToTenantSchema)(req, res, next).catch(next);
+    },
+    async (req: Request, res: Response) => {
+      const { email, name } = req.params;
+
+      try {
+        const tenant = await prisma.tenant.findFirst({ where: { name } });
+        if (!tenant) {
+          res.status(404).json({ status: "error", error: "Tenant not found" });
+
+          return;
+        }
+
+        await prisma.user.update({
+          where: { email },
+          data: { Tenant: { connect: { id: tenant.id } } }
+        });
+
+        res.status(200).json({ status: "success" });
+      } catch (error) {
+        res.status(400).json({ status: "error", error: error.message });
+      }
+  });
 
 app.get('/show-tenants', (req: Request, res: Response) => {
     prisma.tenant.findMany().then((tenants) => res.json(tenants));

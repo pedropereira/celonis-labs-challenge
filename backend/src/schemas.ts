@@ -27,3 +27,10 @@ export const deleteTenantSchema = z.object({
     name: z.string().min(1),
   }),
 });
+
+export const putUserToTenantSchema = z.object({
+  params: z.object({
+    email: z.string().email(),
+    name: z.string().min(1),
+  }),
+});
