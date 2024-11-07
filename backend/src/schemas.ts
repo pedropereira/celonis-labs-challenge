@@ -21,3 +21,9 @@ export const deleteUserSchema = z.object({
     email: z.string().email(),
   }),
 });
+
+export const deleteTenantSchema = z.object({
+  query: z.object({
+    name: z.string().min(1),
+  }),
+});

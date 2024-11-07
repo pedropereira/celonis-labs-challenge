@@ -118,8 +118,19 @@ app.post('/delete-user',
       }
   });
 
-app.post('/delete-tenant',(req: any, res: any) => {
-    prisma.tenant.deleteMany({where: {name: req.query.name}}).then(() => res.json({status: "success"}))
-});
+app.post('/delete-tenant',
+    (req: Request, res: Response, next: NextFunction) => {
+      validateRequest(schemas.deleteTenantSchema)(req, res, next).catch(next);
+    },
+    async (req: Request, res: Response) => {
+      const tenantName = req.query.name as string;
+
+      try {
+        await prisma.tenant.deleteMany({ where: { name: tenantName } });
+        res.status(200).json({ status: "success" });
+      } catch (error) {
+        res.status(400).json({ status: "error", error: error.message });
+      }
+  });
 
 app.listen(3000, () => console.log('Example app is listening on port 3000.'));
