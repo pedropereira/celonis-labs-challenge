@@ -81,9 +81,27 @@ app.get('/show-tenants', (req: Request, res: Response) => {
     prisma.tenant.findMany().then((tenants) => res.json(tenants));
 });
 
-app.put('/update-user/:id', (req: any, res: any) => {
-    prisma.user.update({where: {id: req.params.id}, data: {name: req.query.name}}).then(() => res.json({status: "success"}))
-});
+app.put('/update-user/:id',
+    (req: Request, res: Response, next: NextFunction) => {
+      validateRequest(schemas.updateUserSchema)(req, res, next).catch(next);
+    },
+    async (req: Request, res: Response) => {
+      const userId = req.params.id;
+      const userData = {
+        name: req.query.name as string
+      };
+
+      try {
+        const user = await prisma.user.update({
+          where: { id: userId },
+          data: userData
+        });
+
+        res.status(200).json(user);
+      } catch (error) {
+        res.status(400).json({ status: "error", error: error.message });
+      }
+  });
 
 app.post('/delete-user',(req: any, res: any) => {
     prisma.user.delete({where: {email: req.query.email}}).then(() => res.json({status: "success"}))

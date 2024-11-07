@@ -9,3 +9,9 @@ export const makeUserSchema = z.object({
     tenantId: z.string().uuid(),
   }),
 });
+
+export const updateUserSchema = z.object({
+  query: z.object({
+    name: z.string().min(1),
+  }),
+});
