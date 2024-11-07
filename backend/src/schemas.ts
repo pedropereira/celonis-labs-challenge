@@ -15,3 +15,9 @@ export const updateUserSchema = z.object({
     name: z.string().min(1),
   }),
 });
+
+export const deleteUserSchema = z.object({
+  query: z.object({
+    email: z.string().email(),
+  }),
+});

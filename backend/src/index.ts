@@ -103,9 +103,20 @@ app.put('/update-user/:id',
       }
   });
 
-app.post('/delete-user',(req: any, res: any) => {
-    prisma.user.delete({where: {email: req.query.email}}).then(() => res.json({status: "success"}))
-});
+app.post('/delete-user',
+    (req: Request, res: Response, next: NextFunction) => {
+      validateRequest(schemas.deleteUserSchema)(req, res, next).catch(next);
+    },
+    async (req: Request, res: Response) => {
+      const userEmail = req.query.email as string;
+
+      try {
+        await prisma.user.delete({ where: { email: userEmail } });
+        res.status(200).json({ status: "success" });
+      } catch (error) {
+        res.status(400).json({ status: "error", error: error.message });
+      }
+  });
 
 app.post('/delete-tenant',(req: any, res: any) => {
     prisma.tenant.deleteMany({where: {name: req.query.name}}).then(() => res.json({status: "success"}))
