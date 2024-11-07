@@ -34,24 +34,23 @@ app.get('/make-user/:email',
       }
   });
 
-app.get('/list-users', (req: any, res: any) => {
+app.get('/list-users', (req: Request, res: Response) => {
     prisma.user.findMany().then((users) => res.json(users));
 });
 
-
-app.get('/list-users/:name', (req: any, res: any) => {
+app.get('/list-users/:name', (req: Request, res: Response) => {
     prisma.user.findMany({where: {Tenant: {name: req.params.name}}}).then((users) => res.json(users));
 });
 
-app.get('/show-user/:id', (req: any, res: any) => {
+app.get('/show-user/:id', (req: Request, res: Response) => {
     prisma.user.findUnique({where: {id: req.params.id}}).then((user) => res.json(user));
 });
 
-app.get('/send-user/:email', (req: any, res: any) => {
+app.get('/send-user/:email', (req: Request, res: Response) => {
     prisma.user.findUnique({where: {email: req.params.email}}).then((user) => res.json(user));
 });
 
-app.get('/send-user-tenant/:email', (req: any, res: any) => {
+app.get('/send-user-tenant/:email', (req: Request, res: Response) => {
     prisma.user.findUnique({where: {email: req.params.email}}).then((user) => {
         if (user && user.tenantId) {
             return prisma.tenant.findUnique({
@@ -63,7 +62,7 @@ app.get('/send-user-tenant/:email', (req: any, res: any) => {
     }).catch((err) => res.json({status: "error", error: err}));
 });
 
-app.get('/make-tenant/:name', (req: any, res: any) => {
+app.get('/make-tenant/:name', (req: Request, res: Response) => {
     var tenant = {name: req.params.name};
     console.log(tenant);
     prisma.tenant.create({data: tenant}).then(() => res.json({status: "success"}))
@@ -78,7 +77,7 @@ app.put('/put-user-to-tenant/:email/:name', async (req: any, res: any) => {
     }).then(() => res.json({status: "success"}))
 });
 
-app.get('/show-tenants', (req: any, res: any) => {
+app.get('/show-tenants', (req: Request, res: Response) => {
     prisma.tenant.findMany().then((tenants) => res.json(tenants));
 });
 
