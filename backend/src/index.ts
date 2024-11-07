@@ -44,9 +44,15 @@ app.get('/send-user/:email', (req: any, res: any) => {
 
 app.get('/send-user-tenant/:email', (req: any, res: any) => {
     var prisma = new PrismaClient();
-    prisma.user.findUnique({where: {email: req.params.email}}).then((user) => prisma.tenant.findUnique({
-        where: {id: user.tenantId}
-    }).then((tenant) => res.json(tenant)).catch((err) => res.json({status: "error", error: err})));
+    prisma.user.findUnique({where: {email: req.params.email}}).then((user) => {
+        if (user && user.tenantId) {
+            return prisma.tenant.findUnique({
+                where: {id: user.tenantId}
+            }).then((tenant) => res.json(tenant));
+        } else {
+            res.json({status: "error", error: "User or tenantId not found"});
+        }
+    }).catch((err) => res.json({status: "error", error: err}));
 });
 
 app.get('/make-tenant/:name', (req: any, res: any) => {
