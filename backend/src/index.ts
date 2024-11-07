@@ -13,12 +13,25 @@ app.get('/', (req: any, res: any) => {
     res.send('Successful response.');
 });
 
-app.get('/make-user/:email', (req: any, res: any) => {
-    var user = {email: req.params.email, name: req.query.name};
-    console.log(user);
-    var prisma = new PrismaClient();
-    prisma.user.create({data: user}).then(() => res.json({status: "success"}))
+app.get('/make-user/:email', async (req: any, res: any) => {
+    if (!req.query.tenantId) {
+        return res.status(400).json({ status: "error", error: "tenantId is required" });
+    }
 
+    var userData = {
+        email: req.params.email,
+        name: req.query.name,
+        tenantId: req.query.tenantId
+    };
+
+    var prisma = new PrismaClient();
+    try {
+        const user = await prisma.user.create({data: userData});
+
+        res.status(200).json(user);
+    } catch (error) {
+        res.status(400).json({status: "error", error: error.message});
+    }
 });
 
 app.get('/list-users', (req: any, res: any) => {
