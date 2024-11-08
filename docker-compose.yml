@@ -32,7 +32,6 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=mysecretpassword
-      - POSTGRES_DB=postgres
     volumes:
       - ./database/postgres-data:/var/lib/postgresql/data
     healthcheck:
