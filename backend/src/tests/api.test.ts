@@ -2,30 +2,37 @@ import { app } from "../app";
 import http from "http";
 import { expect, it, describe, beforeAll, beforeEach, afterAll } from "@jest/globals";
 import { prisma } from "../prisma";
+import { randomUUID } from "crypto";
+import { UserDTO, TenantDTO, ErrorDTO } from "../dtos";
 
 describe("API Endpoints", () => {
   let server: http.Server;
   const port = 3001;
   const baseUrl = `http://localhost:${port}`;
 
-  const createTestTenant = async () => {
+  const createTenant = async ({ name = "TestTenant", id = randomUUID().toString() } = {}) => {
     const tenant = await prisma.tenant.create({
       data: {
-        id: "00c0e1b4-2140-42ea-b82e-0970428352f1",
-        name: "TestTenant",
+        id: id,
+        name: name,
       },
     });
 
     return tenant;
   };
 
-  const createTestUser = async (tenantId?: string) => {
+  const createUser = async ({
+    id = randomUUID().toString(),
+    email = "test@example.com",
+    name = "Test User",
+    tenantId = randomUUID().toString(),
+  } = {}) => {
     const user = await prisma.user.create({
       data: {
-        id: "270c8d1e-3dc5-44d2-8e59-ccb9c2722e95",
-        email: "test@example.com",
-        name: "Test User",
-        tenantId: tenantId ?? "00c0e1b4-2140-42ea-b82e-0970428352f1",
+        id: id,
+        email: email,
+        name: name,
+        tenantId: tenantId,
       },
     });
 
@@ -44,10 +51,11 @@ describe("API Endpoints", () => {
   afterAll(async () => {
     await prisma.$disconnect();
     await new Promise<void>((resolve, reject) => {
-      server.close((err) => {
-        if (err) {
-          console.error("Error closing the server:", err);
-          reject(err);
+      server.close((error) => {
+        if (error) {
+          console.error("Error closing the server:", error);
+
+          reject(error);
         } else {
           resolve();
         }
@@ -55,29 +63,81 @@ describe("API Endpoints", () => {
     });
   });
 
-  // Tenant endpoint tests
+  describe("Health Check Endpoint", () => {
+    describe("GET /", () => {
+      it("returns health status", async () => {
+        const response = await fetch(`${baseUrl}/`);
+        const result = (await response.json()) as { healthy: boolean };
+
+        expect(response.status).toBe(200);
+        expect(result).toEqual({ healthy: true });
+      });
+    });
+  });
+
   describe("Tenant Endpoints", () => {
     describe("POST /make-tenant", () => {
       it("creates a new tenant", async () => {
         const response = await fetch(`${baseUrl}/make-tenant/TestTenant`);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const data = await response.json();
+        const tenant = (await response.json()) as TenantDTO;
 
-        expect(response.status).toBe(200);
-        expect(data.status).toBe("success");
+        expect(response.status).toBe(201);
+        expect(tenant.id).toBeDefined();
+        expect(tenant.name).toBe("TestTenant");
+        expect(tenant.createdAt).toBeDefined();
+        expect(tenant.updatedAt).toBeDefined();
       });
     });
 
     describe("GET /show-tenants", () => {
       it("lists all tenants", async () => {
-        await createTestTenant();
+        await createTenant();
 
         const response = await fetch(`${baseUrl}/show-tenants`);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const tenants = await response.json();
+        const tenants = (await response.json()) as TenantDTO[];
 
         expect(response.status).toBe(200);
         expect(tenants.length).toBe(1);
+        expect(tenants[0].id).toBeDefined();
+        expect(tenants[0].name).toBe("TestTenant");
+        expect(tenants[0].createdAt).toBeDefined();
+        expect(tenants[0].updatedAt).toBeDefined();
+      });
+    });
+
+    describe("GET /send-user-tenant/:email", () => {
+      it("gets tenant by user email", async () => {
+        const tenant = await createTenant();
+        await createUser({ tenantId: tenant.id });
+
+        const response = await fetch(`${baseUrl}/send-user-tenant/test@example.com`);
+        const fetchedTenant = (await response.json()) as TenantDTO;
+
+        expect(response.status).toBe(200);
+        expect(fetchedTenant.id).toBe(tenant.id);
+        expect(fetchedTenant.name).toBe(tenant.name);
+      });
+
+      it("returns 404 for non-existent user", async () => {
+        const response = await fetch(`${baseUrl}/send-user-tenant/nonexistent@example.com`);
+        const result = (await response.json()) as ErrorDTO;
+
+        expect(response.status).toBe(404);
+        expect(result.error).toBe("Not Found");
+        expect(result.statusCode).toBe("404");
+        expect(result.messages).toContain("User or tenantId not found");
+      });
+    });
+
+    describe("POST /delete-tenant", () => {
+      it("deletes a tenant by name", async () => {
+        const tenant = await createTenant();
+
+        const response = await fetch(`${baseUrl}/delete-tenant?name=${tenant.name}`, {
+          method: "POST",
+        });
+
+        expect(response.status).toBe(200);
       });
     });
   });
@@ -85,17 +145,16 @@ describe("API Endpoints", () => {
   describe("User Endpoints", () => {
     describe("POST /make-user", () => {
       it("creates a new user", async () => {
-        const tenant = await createTestTenant();
+        const tenant = await createTenant();
         const userName = "Test User";
         const userEmail = "test@example.com";
 
         const response = await fetch(
           `${baseUrl}/make-user/${userEmail}?name=${userName}&tenantId=${tenant.id}`
         );
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const user = await response.json();
+        const user = (await response.json()) as UserDTO;
 
-        expect(response.status).toBe(200);
+        expect(response.status).toBe(201);
         expect(user.id).toBeDefined();
         expect(user.email).toBe(userEmail);
         expect(user.name).toBe(userName);
@@ -107,12 +166,11 @@ describe("API Endpoints", () => {
 
     describe("GET /list-users", () => {
       it("lists all users", async () => {
-        await createTestTenant();
-        await createTestUser();
+        const tenant = await createTenant();
+        await createUser({ tenantId: tenant.id });
 
         const response = await fetch(`${baseUrl}/list-users`);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const users = await response.json();
+        const users = (await response.json()) as UserDTO[];
 
         expect(response.status).toBe(200);
         expect(users.length).toBe(1);
@@ -121,16 +179,92 @@ describe("API Endpoints", () => {
 
     describe("GET /send-user", () => {
       it("gets user by email", async () => {
-        await createTestTenant();
-        await createTestUser();
+        const tenant = await createTenant();
+        await createUser({ tenantId: tenant.id });
 
         const response = await fetch(`${baseUrl}/send-user/test@example.com`);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const user = await response.json();
+        const user = (await response.json()) as UserDTO;
 
         expect(response.status).toBe(200);
         expect(user.email).toBe("test@example.com");
       });
+    });
+  });
+
+  describe("GET /list-users/:name", () => {
+    it("lists users by tenant name", async () => {
+      const tenant = await createTenant();
+      await createUser({ tenantId: tenant.id });
+
+      const response = await fetch(`${baseUrl}/list-users/${tenant.name}`);
+      const users = (await response.json()) as UserDTO[];
+
+      expect(response.status).toBe(200);
+      expect(users.length).toBe(1);
+      expect(users[0].tenantId).toBe(tenant.id);
+    });
+  });
+
+  describe("GET /show-user/:id", () => {
+    it("gets user by id", async () => {
+      const tenant = await createTenant();
+      const user = await createUser({ tenantId: tenant.id });
+
+      const response = await fetch(`${baseUrl}/show-user/${user.id}`);
+      const fetchedUser = (await response.json()) as UserDTO;
+
+      expect(response.status).toBe(200);
+      expect(fetchedUser.id).toBe(user.id);
+      expect(fetchedUser.email).toBe(user.email);
+    });
+  });
+
+  describe("PUT /put-user-to-tenant/:email/:name", () => {
+    it("assigns user to a different tenant", async () => {
+      const tenant1 = await createTenant({ name: "FirstTenant" });
+      const tenant2 = await createTenant({ name: "SecondTenant" });
+      await createUser({ tenantId: tenant1.id });
+
+      const response = await fetch(
+        `${baseUrl}/put-user-to-tenant/test@example.com/${tenant2.name}`,
+        {
+          method: "PUT",
+        }
+      );
+      const result = (await response.json()) as UserDTO;
+
+      expect(response.status).toBe(200);
+      expect(result.tenantId).toBe(tenant2.id);
+    });
+  });
+
+  describe("PUT /update-user/:id", () => {
+    it("updates user name", async () => {
+      const tenant = await createTenant();
+      const user = await createUser({ tenantId: tenant.id });
+      const newName = "Updated Name";
+
+      const response = await fetch(`${baseUrl}/update-user/${user.id}?name=${newName}`, {
+        method: "PUT",
+      });
+      const updatedUser = (await response.json()) as UserDTO;
+
+      expect(response.status).toBe(200);
+      expect(updatedUser.name).toBe(newName);
+      expect(updatedUser.id).toBe(user.id);
+    });
+  });
+
+  describe("POST /delete-user", () => {
+    it("deletes a user by email", async () => {
+      const tenant = await createTenant();
+      const user = await createUser({ tenantId: tenant.id });
+
+      const response = await fetch(`${baseUrl}/delete-user?email=${user.email}`, {
+        method: "POST",
+      });
+
+      expect(response.status).toBe(200);
     });
   });
 });

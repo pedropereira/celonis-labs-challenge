@@ -2,160 +2,228 @@ import { Express, Request, Response, NextFunction } from "express";
 import { prisma } from "./prisma";
 import * as schemas from "./schemas";
 import { validateRequest } from "./middleware";
+import { ErrorDTO, TenantDTO, UserDTO } from "./dtos";
 
 export function setupRoutes(app: Express) {
-  app.get("/", (req: Request, res: Response) => {
-    res.send("Successful response.");
+  app.get("/", (_request: Request, response: Response) => {
+    response.status(200).json({ healthy: true });
   });
 
   app.get(
     "/make-user/:email",
-    (req: Request, res: Response, next: NextFunction) => {
-      validateRequest(schemas.makeUserSchema)(req, res, next).catch(next);
+    (request: Request, response: Response, next: NextFunction) => {
+      validateRequest(schemas.makeUserSchema)(request, response, next).catch(next);
     },
-    async (req: Request, res: Response) => {
+    async (request: Request, response: Response<UserDTO | ErrorDTO>) => {
       const userData = {
-        email: req.params.email,
-        name: req.query.name as string,
-        tenantId: req.query.tenantId as string,
+        email: request.params.email,
+        name: request.query.name as string,
+        tenantId: request.query.tenantId as string,
       };
 
       try {
         const user = await prisma.user.create({ data: userData });
 
-        res.status(200).json(user);
+        response.status(201).json(user);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
-        res.status(400).json({ status: "error", error: errorMessage });
+        response
+          .status(400)
+          .json({ error: "Bad Request", statusCode: "400", messages: [errorMessage] });
       }
     }
   );
 
-  app.get("/list-users", async (req: Request, res: Response) => {
+  app.get("/list-users", async (_request: Request, response: Response<UserDTO[] | ErrorDTO>) => {
     try {
       const users = await prisma.user.findMany();
 
-      res.status(200).json(users);
+      response.status(200).json(users);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
-      res.status(400).json({ status: "error", error: errorMessage });
+      response
+        .status(400)
+        .json({ error: "Bad Request", statusCode: "400", messages: [errorMessage] });
     }
   });
 
-  app.get("/list-users/:name", async (req: Request, res: Response) => {
-    await prisma.user
-      .findMany({ where: { Tenant: { name: req.params.name } } })
-      .then((users) => res.status(200).json(users))
-      .catch((error) => {
+  app.get(
+    "/list-users/:name",
+    async (request: Request, response: Response<UserDTO[] | ErrorDTO>) => {
+      try {
+        const users = await prisma.user.findMany({
+          where: { Tenant: { name: request.params.name } },
+        });
+
+        response.status(200).json(users);
+      } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
-        res.status(400).json({ status: "error", error: errorMessage });
-      });
+        response
+          .status(400)
+          .json({ error: "Bad Request", statusCode: "400", messages: [errorMessage] });
+      }
+    }
+  );
+
+  app.get("/show-user/:id", async (request: Request, response: Response<UserDTO | ErrorDTO>) => {
+    try {
+      const user = await prisma.user.findUnique({ where: { id: request.params.id } });
+
+      if (user) {
+        response.status(200).json(user);
+      } else {
+        response
+          .status(404)
+          .json({ error: "Not Found", statusCode: "404", messages: ["User not found"] });
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+      response
+        .status(400)
+        .json({ error: "Bad Request", statusCode: "400", messages: [errorMessage] });
+    }
   });
 
-  app.get("/show-user/:id", async (req: Request, res: Response) => {
-    await prisma.user
-      .findUnique({ where: { id: req.params.id } })
-      .then((user) => res.status(200).json(user))
-      .catch((error) => {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+  app.get("/send-user/:email", async (request: Request, response: Response<UserDTO | ErrorDTO>) => {
+    try {
+      const user = await prisma.user.findUnique({ where: { email: request.params.email } });
 
-        res.status(400).json({ status: "error", error: errorMessage });
-      });
+      if (user) {
+        response.status(200).json(user);
+      } else {
+        response
+          .status(404)
+          .json({ error: "Not Found", statusCode: "404", messages: ["User not found"] });
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+      response
+        .status(400)
+        .json({ error: "Bad Request", statusCode: "400", messages: [errorMessage] });
+    }
   });
 
-  app.get("/send-user/:email", async (req: Request, res: Response) => {
-    await prisma.user
-      .findUnique({ where: { email: req.params.email } })
-      .then((user) => res.status(200).json(user))
-      .catch((error) => {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+  app.get(
+    "/send-user-tenant/:email",
+    async (request: Request, response: Response<TenantDTO | ErrorDTO>) => {
+      try {
+        const user = await prisma.user.findUnique({ where: { email: request.params.email } });
 
-        res.status(400).json({ status: "error", error: errorMessage });
-      });
-  });
-
-  app.get("/send-user-tenant/:email", async (req: Request, res: Response) => {
-    await prisma.user
-      .findUnique({ where: { email: req.params.email } })
-      .then((user) => {
         if (user?.tenantId) {
-          return prisma.tenant
-            .findUnique({
-              where: { id: user.tenantId },
-            })
-            .then((tenant) => res.json(tenant));
+          const tenant = await prisma.tenant.findUnique({ where: { id: user.tenantId } });
+
+          if (tenant) {
+            response.status(200).json(tenant);
+          } else {
+            response
+              .status(404)
+              .json({ error: "Not Found", statusCode: "404", messages: ["Tenant not found"] });
+          }
         } else {
-          res.status(404).json({ status: "error", error: "User or tenantId not found" });
+          response.status(404).json({
+            error: "Not Found",
+            statusCode: "404",
+            messages: ["Tenant not found"],
+          });
         }
-      })
-      .catch((error) => {
+      } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
-        res.status(400).json({ status: "error", error: errorMessage });
-      });
-  });
+        response
+          .status(400)
+          .json({ error: "Bad Request", statusCode: "400", messages: [errorMessage] });
+      }
+    }
+  );
 
-  app.get("/make-tenant/:name", async (req: Request, res: Response) => {
-    const tenant = { name: req.params.name };
+  app.get(
+    "/make-tenant/:name",
+    (request: Request, response: Response, next: NextFunction) => {
+      validateRequest(schemas.makeTenantSchema)(request, response, next).catch(next);
+    },
+    async (request: Request, response: Response<TenantDTO | ErrorDTO>) => {
+      const tenantData = { name: request.params.name };
 
-    await prisma.tenant
-      .create({ data: tenant })
-      .then(() => res.status(200).json({ status: "success" }));
-  });
+      try {
+        const tenant = await prisma.tenant.create({ data: tenantData });
+
+        response.status(201).json(tenant);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+        response
+          .status(400)
+          .json({ error: "Bad Request", statusCode: "400", messages: [errorMessage] });
+      }
+    }
+  );
 
   app.put(
     "/put-user-to-tenant/:email/:name",
-    (req: Request, res: Response, next: NextFunction) => {
-      validateRequest(schemas.putUserToTenantSchema)(req, res, next).catch(next);
+    (request: Request, response: Response, next: NextFunction) => {
+      validateRequest(schemas.putUserToTenantSchema)(request, response, next).catch(next);
     },
-    async (req: Request, res: Response) => {
-      const { email, name } = req.params;
+    async (request: Request, response: Response<UserDTO | ErrorDTO>) => {
+      const { email, name } = request.params;
 
       try {
         const tenant = await prisma.tenant.findFirst({ where: { name } });
 
         if (!tenant) {
-          res.status(404).json({ status: "error", error: "Tenant not found" });
+          response
+            .status(404)
+            .json({ error: "Not Found", statusCode: "404", messages: ["Tenant not found"] });
+
           return;
         }
 
-        await prisma.user.update({
+        const updatedUser = await prisma.user.update({
           where: { email },
-          data: { Tenant: { connect: { id: tenant.id } } },
+          data: { tenantId: tenant.id },
         });
 
-        res.status(200).json({ status: "success" });
+        response.status(200).json(updatedUser);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
-        res.status(400).json({ status: "error", error: errorMessage });
+        response
+          .status(400)
+          .json({ error: "Bad Request", statusCode: "400", messages: [errorMessage] });
       }
     }
   );
 
-  app.get("/show-tenants", async (req: Request, res: Response) => {
-    await prisma.tenant
-      .findMany()
-      .then((tenants) => res.status(200).json(tenants))
-      .catch((error) => {
+  app.get(
+    "/show-tenants",
+    async (_request: Request, response: Response<TenantDTO[] | ErrorDTO>) => {
+      try {
+        const tenants = await prisma.tenant.findMany();
+
+        response.status(200).json(tenants);
+      } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
-        res.status(400).json({ status: "error", error: errorMessage });
-      });
-  });
+        response
+          .status(400)
+          .json({ error: "Bad Request", statusCode: "400", messages: [errorMessage] });
+      }
+    }
+  );
 
   app.put(
     "/update-user/:id",
-    (req: Request, res: Response, next: NextFunction) => {
-      validateRequest(schemas.updateUserSchema)(req, res, next).catch(next);
+    (request: Request, response: Response, next: NextFunction) => {
+      validateRequest(schemas.updateUserSchema)(request, response, next).catch(next);
     },
-    async (req: Request, res: Response) => {
-      const userId = req.params.id;
+    async (request: Request, response: Response<UserDTO | ErrorDTO>) => {
+      const userId = request.params.id;
       const userData = {
-        name: req.query.name as string,
+        name: request.query.name as string,
       };
 
       try {
@@ -164,51 +232,57 @@ export function setupRoutes(app: Express) {
           data: userData,
         });
 
-        res.status(200).json(user);
+        response.status(200).json(user);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
-        res.status(400).json({ status: "error", error: errorMessage });
+        response
+          .status(400)
+          .json({ error: "Bad Request", statusCode: "400", messages: [errorMessage] });
       }
     }
   );
 
   app.post(
     "/delete-user",
-    (req: Request, res: Response, next: NextFunction) => {
-      validateRequest(schemas.deleteUserSchema)(req, res, next).catch(next);
+    (request: Request, response: Response, next: NextFunction) => {
+      validateRequest(schemas.deleteUserSchema)(request, response, next).catch(next);
     },
-    async (req: Request, res: Response) => {
-      const userEmail = req.query.email as string;
+    async (request: Request, response: Response<null | ErrorDTO>) => {
+      const userEmail = request.query.email as string;
 
       try {
         await prisma.user.delete({ where: { email: userEmail } });
 
-        res.status(200).json({ status: "success" });
+        response.status(200).end();
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
-        res.status(400).json({ status: "error", error: errorMessage });
+        response
+          .status(400)
+          .json({ error: "Bad Request", statusCode: "400", messages: [errorMessage] });
       }
     }
   );
 
   app.post(
     "/delete-tenant",
-    (req: Request, res: Response, next: NextFunction) => {
-      validateRequest(schemas.deleteTenantSchema)(req, res, next).catch(next);
+    (request: Request, response: Response, next: NextFunction) => {
+      validateRequest(schemas.deleteTenantSchema)(request, response, next).catch(next);
     },
-    async (req: Request, res: Response) => {
-      const tenantName = req.query.name as string;
+    async (request: Request, response: Response<null | ErrorDTO>) => {
+      const tenantName = request.query.name as string;
 
       try {
         await prisma.tenant.deleteMany({ where: { name: tenantName } });
 
-        res.status(200).json({ status: "success" });
+        response.status(200).end();
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
-        res.status(400).json({ status: "error", error: errorMessage });
+        response
+          .status(400)
+          .json({ error: "Bad Request", statusCode: "400", messages: [errorMessage] });
       }
     }
   );
