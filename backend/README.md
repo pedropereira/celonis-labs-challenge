@@ -24,25 +24,9 @@ docker compose exec backend npx prisma db push
 docker compose exec backend npx prisma db seed
 ```
 
-## Local Development Setup (without Docker)
-
-Install dependencies and push and seed the database schema:
-
-```bash
-yarn install
-npx prisma db push
-npx prisma db seed
-```
-
 ## Tests
 
-The test suite needs a database to be setup but the database container defined in the docker compose file can be used for that purpose. In order to do so, it's recommended to spin up the containers with:
-
-```bash
-make up
-```
-
-Then, on a separate terminal, run the following command to get a shell into the backend container:
+The test suite needs a database to be setup and the database container defined in the docker compose file can be re-used for that purpose. If the containers are already running, you can run the following command on a separate terminal to get a shell into the backend container:
 
 ```bash
 make shell
