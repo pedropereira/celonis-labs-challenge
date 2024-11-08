@@ -3,7 +3,7 @@ import http from "http";
 import { expect, it, describe, beforeAll, beforeEach, afterAll } from "@jest/globals";
 import { prisma } from "../prisma";
 import { randomUUID } from "crypto";
-import { UserDTO, TenantDTO } from "../dtos";
+import { UserDTO, TenantDTO, ErrorDTO } from "../dtos";
 
 describe("API Endpoints", () => {
   let server: http.Server;
@@ -93,6 +93,17 @@ describe("API Endpoints", () => {
         expect(tenant.createdAt).toBeDefined();
         expect(tenant.updatedAt).toBeDefined();
       });
+
+      it("returns 400 for missing name", async () => {
+        const response = await fetch(`${baseUrl}/v1/tenants`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        expect(response.status).toBe(400);
+      });
     });
 
     describe("PATCH /v1/tenants/:id", () => {
@@ -111,6 +122,18 @@ describe("API Endpoints", () => {
 
         expect(response.status).toBe(200);
         expect(updatedTenant.name).toBe(newName);
+      });
+
+      it("returns 400 for non-existent tenant", async () => {
+        const response = await fetch(`${baseUrl}/v1/tenants/non-existent-id`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name: "New Name" }),
+        });
+
+        expect(response.status).toBe(400);
       });
     });
 
@@ -143,6 +166,14 @@ describe("API Endpoints", () => {
         expect(fetchedTenant.createdAt).toBeDefined();
         expect(fetchedTenant.updatedAt).toBeDefined();
       });
+
+      it("returns 404 for non-existent tenant", async () => {
+        const response = await fetch(`${baseUrl}/v1/tenants/non-existent-id`);
+        const error = (await response.json()) as ErrorDTO;
+
+        expect(response.status).toBe(404);
+        expect(error.messages).toEqual(["Tenant not found"]);
+      });
     });
 
     describe("DELETE /v1/tenants/:id", () => {
@@ -154,6 +185,14 @@ describe("API Endpoints", () => {
         });
 
         expect(response.status).toBe(200);
+      });
+
+      it("returns 400 for non-existent tenant", async () => {
+        const response = await fetch(`${baseUrl}/v1/tenants/non-existent-id`, {
+          method: "DELETE",
+        });
+
+        expect(response.status).toBe(400);
       });
     });
   });
@@ -217,6 +256,14 @@ describe("API Endpoints", () => {
         expect(fetchedUser.createdAt).toBeDefined();
         expect(fetchedUser.updatedAt).toBeDefined();
       });
+
+      it("returns 404 for non-existent user", async () => {
+        const response = await fetch(`${baseUrl}/v1/users/non-existent-id`);
+        const error = (await response.json()) as ErrorDTO;
+
+        expect(response.status).toBe(404);
+        expect(error.messages).toEqual(["User not found"]);
+      });
     });
   });
 
@@ -251,6 +298,14 @@ describe("API Endpoints", () => {
       });
 
       expect(response.status).toBe(200);
+    });
+
+    it("returns 400 for non-existent user", async () => {
+      const response = await fetch(`${baseUrl}/v1/users/non-existent-id`, {
+        method: "DELETE",
+      });
+
+      expect(response.status).toBe(400);
     });
   });
 });
