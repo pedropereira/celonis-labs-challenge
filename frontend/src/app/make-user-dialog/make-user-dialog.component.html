@@ -9,11 +9,20 @@
     <mat-label>Email</mat-label>
     <input matInput [(ngModel)]="email">
   </mat-form-field>
+  <mat-form-field>
+    <mat-label>Tenant</mat-label>
+    <mat-select [(ngModel)]="selectedTenantId" required>
+      <mat-option *ngFor="let tenant of tenants" [value]="tenant.id">
+        {{tenant.name}}
+      </mat-option>
+    </mat-select>
+    <mat-error *ngIf="!selectedTenantId">Tenant is required</mat-error>
+  </mat-form-field>
   <p *ngIf="userCreated">
     User created successfully!
   </p>
 </div>
 <div mat-dialog-actions>
-  <button mat-flat-button (click)="createUser()" color="primary" #createButton>Save User</button>
+  <button mat-flat-button (click)="createUser()" color="primary" [disabled]="isLoading">Save User</button>
   <button mat-button mat-dialog-close>Close dialog</button>
 </div>

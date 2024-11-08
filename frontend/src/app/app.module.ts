@@ -20,6 +20,7 @@ import {FormsModule} from "@angular/forms";
 import {MatLineModule} from "@angular/material/core";
 import { TenantsComponent } from './tenants/tenants.component';
 import { AddTenantComponent } from './add-tenant/add-tenant.component';
+import { MatSelectModule } from '@angular/material/select';
 
 @NgModule({
   declarations: [
@@ -44,7 +45,8 @@ import { AddTenantComponent } from './add-tenant/add-tenant.component';
     MatFormFieldModule,
     MatInputModule,
     FormsModule,
-    MatLineModule
+    MatLineModule,
+    MatSelectModule
   ],
   providers: [],
   bootstrap: [AppComponent]
