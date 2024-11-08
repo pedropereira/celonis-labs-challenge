@@ -6,6 +6,8 @@
     "build": "yarn build:clean && tsc",
     "build:clean": "rm -rf dist",
     "dev": "ts-node src/index.ts",
+    "format": "prettier --write --config ../.prettierrc .",
+    "lint": "eslint .",
     "start": "ts-node src/index.ts",
     "postinstall": "cd ../../../ && npx husky install ./server-code/services/template/.husky",
     "test:setup": "npx dotenv-cli -o -e .env.test -- npx prisma db push",
@@ -47,7 +49,7 @@
   },
   "lint-staged": {
     "*": [
-      "npx prettier --write --ignore-unknown"
+      "yarn format"
     ]
   }
 }
