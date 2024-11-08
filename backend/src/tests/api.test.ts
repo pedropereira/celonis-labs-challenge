@@ -3,6 +3,7 @@ import http from "http";
 import { expect, it, describe, beforeAll, beforeEach, afterAll } from "@jest/globals";
 import { prisma } from "../prisma";
 import { randomUUID } from "crypto";
+import { UserDTO, TenantDTO, ErrorDTO } from "../dtos";
 
 describe("API Endpoints", () => {
   let server: http.Server;
@@ -50,10 +51,11 @@ describe("API Endpoints", () => {
   afterAll(async () => {
     await prisma.$disconnect();
     await new Promise<void>((resolve, reject) => {
-      server.close((err) => {
-        if (err) {
-          console.error("Error closing the server:", err);
-          reject(err);
+      server.close((error) => {
+        if (error) {
+          console.error("Error closing the server:", error);
+
+          reject(error);
         } else {
           resolve();
         }
@@ -65,8 +67,7 @@ describe("API Endpoints", () => {
     describe("GET /", () => {
       it("returns health status", async () => {
         const response = await fetch(`${baseUrl}/`);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const result = await response.json();
+        const result = (await response.json()) as { healthy: boolean };
 
         expect(response.status).toBe(200);
         expect(result).toEqual({ healthy: true });
@@ -78,8 +79,7 @@ describe("API Endpoints", () => {
     describe("POST /make-tenant", () => {
       it("creates a new tenant", async () => {
         const response = await fetch(`${baseUrl}/make-tenant/TestTenant`);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const tenant = await response.json();
+        const tenant = (await response.json()) as TenantDTO;
 
         expect(response.status).toBe(201);
         expect(tenant.id).toBeDefined();
@@ -94,8 +94,7 @@ describe("API Endpoints", () => {
         await createTenant();
 
         const response = await fetch(`${baseUrl}/show-tenants`);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const tenants = await response.json();
+        const tenants = (await response.json()) as TenantDTO[];
 
         expect(response.status).toBe(200);
         expect(tenants.length).toBe(1);
@@ -112,8 +111,7 @@ describe("API Endpoints", () => {
         await createUser({ tenantId: tenant.id });
 
         const response = await fetch(`${baseUrl}/send-user-tenant/test@example.com`);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const fetchedTenant = await response.json();
+        const fetchedTenant = (await response.json()) as TenantDTO;
 
         expect(response.status).toBe(200);
         expect(fetchedTenant.id).toBe(tenant.id);
@@ -122,11 +120,12 @@ describe("API Endpoints", () => {
 
       it("returns 404 for non-existent user", async () => {
         const response = await fetch(`${baseUrl}/send-user-tenant/nonexistent@example.com`);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const result = await response.json();
+        const result = (await response.json()) as ErrorDTO;
 
         expect(response.status).toBe(404);
-        expect(result.status).toBe("error");
+        expect(result.error).toBe("Not Found");
+        expect(result.statusCode).toBe("404");
+        expect(result.messages).toContain("User or tenantId not found");
       });
     });
 
@@ -153,8 +152,7 @@ describe("API Endpoints", () => {
         const response = await fetch(
           `${baseUrl}/make-user/${userEmail}?name=${userName}&tenantId=${tenant.id}`
         );
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const user = await response.json();
+        const user = (await response.json()) as UserDTO;
 
         expect(response.status).toBe(201);
         expect(user.id).toBeDefined();
@@ -172,8 +170,7 @@ describe("API Endpoints", () => {
         await createUser({ tenantId: tenant.id });
 
         const response = await fetch(`${baseUrl}/list-users`);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const users = await response.json();
+        const users = (await response.json()) as UserDTO[];
 
         expect(response.status).toBe(200);
         expect(users.length).toBe(1);
@@ -186,8 +183,7 @@ describe("API Endpoints", () => {
         await createUser({ tenantId: tenant.id });
 
         const response = await fetch(`${baseUrl}/send-user/test@example.com`);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const user = await response.json();
+        const user = (await response.json()) as UserDTO;
 
         expect(response.status).toBe(200);
         expect(user.email).toBe("test@example.com");
@@ -201,8 +197,7 @@ describe("API Endpoints", () => {
       await createUser({ tenantId: tenant.id });
 
       const response = await fetch(`${baseUrl}/list-users/${tenant.name}`);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const users = await response.json();
+      const users = (await response.json()) as UserDTO[];
 
       expect(response.status).toBe(200);
       expect(users.length).toBe(1);
@@ -216,8 +211,7 @@ describe("API Endpoints", () => {
       const user = await createUser({ tenantId: tenant.id });
 
       const response = await fetch(`${baseUrl}/show-user/${user.id}`);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const fetchedUser = await response.json();
+      const fetchedUser = (await response.json()) as UserDTO;
 
       expect(response.status).toBe(200);
       expect(fetchedUser.id).toBe(user.id);
@@ -237,8 +231,7 @@ describe("API Endpoints", () => {
           method: "PUT",
         }
       );
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const result = await response.json();
+      const result = (await response.json()) as UserDTO;
 
       expect(response.status).toBe(200);
       expect(result.tenantId).toBe(tenant2.id);
@@ -254,8 +247,7 @@ describe("API Endpoints", () => {
       const response = await fetch(`${baseUrl}/update-user/${user.id}?name=${newName}`, {
         method: "PUT",
       });
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const updatedUser = await response.json();
+      const updatedUser = (await response.json()) as UserDTO;
 
       expect(response.status).toBe(200);
       expect(updatedUser.name).toBe(newName);
