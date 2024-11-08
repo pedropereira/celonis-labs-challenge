@@ -1,24 +1,22 @@
 import { z } from "zod";
 
-export const makeUserSchema = z.object({
-  params: z.object({
-    email: z.string().email(),
-  }),
-  query: z.object({
+export const createUserSchema = z.object({
+  body: z.object({
     name: z.string().min(1),
+    email: z.string().email(),
     tenantId: z.string().uuid(),
   }),
 });
 
 export const updateUserSchema = z.object({
-  query: z.object({
+  body: z.object({
     name: z.string().min(1),
   }),
 });
 
 export const deleteUserSchema = z.object({
-  query: z.object({
-    email: z.string().email(),
+  params: z.object({
+    id: z.string().uuid(),
   }),
 });
 
@@ -29,14 +27,13 @@ export const makeTenantSchema = z.object({
 });
 
 export const deleteTenantSchema = z.object({
-  query: z.object({
-    name: z.string().min(1),
+  params: z.object({
+    id: z.string().uuid(),
   }),
 });
 
 export const putUserToTenantSchema = z.object({
   params: z.object({
     email: z.string().email(),
-    name: z.string().min(1),
   }),
 });

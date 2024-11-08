@@ -13,16 +13,16 @@ export function setupRoutes(app: Express) {
     response.status(200).json({ healthy: true });
   });
 
-  app.get(
-    "/make-user/:email",
+  app.post(
+    "/v1/users",
     (request: Request, response: Response, next: NextFunction) => {
-      validateRequest(schemas.makeUserSchema)(request, response, next).catch(next);
+      validateRequest(schemas.createUserSchema)(request, response, next).catch(next);
     },
     async (request: Request, response: Response<UserDTO | ErrorDTO>) => {
       const userData = {
-        email: request.params.email,
-        name: request.query.name as string,
-        tenantId: request.query.tenantId as string,
+        email: request.body.email as string,
+        name: request.body.name as string,
+        tenantId: request.body.tenantId as string,
       };
 
       try {
@@ -39,7 +39,7 @@ export function setupRoutes(app: Express) {
     }
   );
 
-  app.get("/list-users", async (_request: Request, response: Response<UserDTO[] | ErrorDTO>) => {
+  app.get("/v1/users", async (_request: Request, response: Response<UserDTO[] | ErrorDTO>) => {
     try {
       const users = await userRepository.findMany();
 
@@ -53,13 +53,41 @@ export function setupRoutes(app: Express) {
     }
   });
 
-  app.get(
-    "/list-users/:name",
-    async (request: Request, response: Response<UserDTO[] | ErrorDTO>) => {
-      try {
-        const users = await userRepository.findManyByTenantName(request.params.name);
+  app.get("/v1/users/:id", async (request: Request, response: Response<UserDTO | ErrorDTO>) => {
+    try {
+      const user = await userRepository.find(request.params.id);
 
-        response.status(200).json(users);
+      if (user) {
+        response.status(200).json(user);
+      } else {
+        response
+          .status(404)
+          .json({ error: "Not Found", statusCode: "404", messages: ["User not found"] });
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+      response
+        .status(400)
+        .json({ error: "Bad Request", statusCode: "400", messages: [errorMessage] });
+    }
+  });
+
+  app.patch(
+    "/v1/users/:id",
+    (request: Request, response: Response, next: NextFunction) => {
+      validateRequest(schemas.updateUserSchema)(request, response, next).catch(next);
+    },
+    async (request: Request, response: Response<UserDTO | ErrorDTO>) => {
+      const userId = request.params.id;
+      const userData = {
+        name: request.body.name as string,
+      };
+
+      try {
+        const user = await userRepository.update(userId, userData);
+
+        response.status(200).json(user);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
@@ -70,45 +98,27 @@ export function setupRoutes(app: Express) {
     }
   );
 
-  app.get("/show-user/:id", async (request: Request, response: Response<UserDTO | ErrorDTO>) => {
-    try {
-      const user = await userRepository.findById(request.params.id);
+  app.delete(
+    "/v1/users/:id",
+    (request: Request, response: Response, next: NextFunction) => {
+      validateRequest(schemas.deleteUserSchema)(request, response, next).catch(next);
+    },
+    async (request: Request, response: Response<null | ErrorDTO>) => {
+      const id = request.params.id;
 
-      if (user) {
-        response.status(200).json(user);
-      } else {
+      try {
+        await userRepository.delete(id);
+
+        response.status(200).end();
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
         response
-          .status(404)
-          .json({ error: "Not Found", statusCode: "404", messages: ["User not found"] });
+          .status(400)
+          .json({ error: "Bad Request", statusCode: "400", messages: [errorMessage] });
       }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-
-      response
-        .status(400)
-        .json({ error: "Bad Request", statusCode: "400", messages: [errorMessage] });
     }
-  });
-
-  app.get("/send-user/:email", async (request: Request, response: Response<UserDTO | ErrorDTO>) => {
-    try {
-      const user = await userRepository.findByEmail(request.params.email);
-
-      if (user) {
-        response.status(200).json(user);
-      } else {
-        response
-          .status(404)
-          .json({ error: "Not Found", statusCode: "404", messages: ["User not found"] });
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-
-      response
-        .status(400)
-        .json({ error: "Bad Request", statusCode: "400", messages: [errorMessage] });
-    }
-  });
+  );
 
   app.get(
     "/send-user-tenant/:email",
@@ -202,53 +212,6 @@ export function setupRoutes(app: Express) {
         const tenants = await tenantRepository.findMany();
 
         response.status(200).json(tenants);
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
-
-        response
-          .status(400)
-          .json({ error: "Bad Request", statusCode: "400", messages: [errorMessage] });
-      }
-    }
-  );
-
-  app.put(
-    "/update-user/:id",
-    (request: Request, response: Response, next: NextFunction) => {
-      validateRequest(schemas.updateUserSchema)(request, response, next).catch(next);
-    },
-    async (request: Request, response: Response<UserDTO | ErrorDTO>) => {
-      const userId = request.params.id;
-      const userData = {
-        name: request.query.name as string,
-      };
-
-      try {
-        const user = await userRepository.update(userId, userData);
-
-        response.status(200).json(user);
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
-
-        response
-          .status(400)
-          .json({ error: "Bad Request", statusCode: "400", messages: [errorMessage] });
-      }
-    }
-  );
-
-  app.post(
-    "/delete-user",
-    (request: Request, response: Response, next: NextFunction) => {
-      validateRequest(schemas.deleteUserSchema)(request, response, next).catch(next);
-    },
-    async (request: Request, response: Response<null | ErrorDTO>) => {
-      const userEmail = request.query.email as string;
-
-      try {
-        await userRepository.deleteByEmail(userEmail);
-
-        response.status(200).end();
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
 

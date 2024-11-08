@@ -3,11 +3,13 @@
   <p>Create a new user</p>
   <mat-form-field>
     <mat-label>Name</mat-label>
-    <input matInput [(ngModel)]="name">
+    <input matInput [(ngModel)]="name" required>
+    <mat-error *ngIf="!name">Name is required</mat-error>
   </mat-form-field>
   <mat-form-field>
     <mat-label>Email</mat-label>
-    <input matInput [(ngModel)]="email">
+    <input matInput [(ngModel)]="email" required>
+    <mat-error *ngIf="!email">Email is required</mat-error>
   </mat-form-field>
   <mat-form-field>
     <mat-label>Tenant</mat-label>
