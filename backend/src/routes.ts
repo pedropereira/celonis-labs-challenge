@@ -23,7 +23,7 @@ export function setupRoutes(app: Express) {
       try {
         const user = await prisma.user.create({ data: userData });
 
-        response.status(200).json(user);
+        response.status(201).json(user);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
@@ -109,7 +109,7 @@ export function setupRoutes(app: Express) {
       try {
         const tenant = await prisma.tenant.create({ data: tenantData });
 
-        response.status(200).json(tenant);
+        response.status(201).json(tenant);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
