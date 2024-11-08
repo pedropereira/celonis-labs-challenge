@@ -1,5 +1,6 @@
 import {Component, inject, ViewChild} from '@angular/core';
 import {HttpClient} from "@angular/common/http";
+import {MatDialogRef} from '@angular/material/dialog';
 
 @Component({
   selector: 'app-add-tenant',
@@ -12,10 +13,15 @@ export class AddTenantComponent {
   @ViewChild('createButton') createButton: any
   private http = inject(HttpClient)
 
+  constructor(private dialogRef: MatDialogRef<AddTenantComponent>) {}
+
   createTenant() {
     this.createButton._elementRef.nativeElement.disabled = true;
     this.http.get("http://localhost:3000/make-tenant/" + this.name).subscribe((users) => {
       this.tenantCreated = true;
-    })
+      setTimeout(() => {
+        this.dialogRef.close(true);
+      }, 1000);
+    });
   }
 }
