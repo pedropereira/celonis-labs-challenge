@@ -16,7 +16,7 @@ export class UserRepository {
     });
   }
 
-  async findById(id: string): Promise<User | null> {
+  async find(id: string): Promise<User | null> {
     return prisma.user.findUnique({ where: { id } });
   }
 
@@ -38,7 +38,7 @@ export class UserRepository {
     });
   }
 
-  async deleteByEmail(email: string): Promise<User> {
-    return prisma.user.delete({ where: { email } });
+  async delete(id: string): Promise<User> {
+    return prisma.user.delete({ where: { id } });
   }
 } 
