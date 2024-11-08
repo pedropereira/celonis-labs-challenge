@@ -76,9 +76,15 @@ describe("API Endpoints", () => {
   });
 
   describe("Tenant Endpoints", () => {
-    describe("POST /make-tenant", () => {
+    describe("POST /v1/tenants", () => {
       it("creates a new tenant", async () => {
-        const response = await fetch(`${baseUrl}/make-tenant/TestTenant`);
+        const response = await fetch(`${baseUrl}/v1/tenants`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name: "TestTenant" }),
+        });
         const tenant = (await response.json()) as TenantDTO;
 
         expect(response.status).toBe(201);
@@ -87,13 +93,55 @@ describe("API Endpoints", () => {
         expect(tenant.createdAt).toBeDefined();
         expect(tenant.updatedAt).toBeDefined();
       });
+
+      it("returns 400 for missing name", async () => {
+        const response = await fetch(`${baseUrl}/v1/tenants`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        expect(response.status).toBe(400);
+      });
     });
 
-    describe("GET /show-tenants", () => {
+    describe("PATCH /v1/tenants/:id", () => {
+      it("updates tenant name", async () => {
+        const tenant = await createTenant();
+        const newName = "Updated Name";
+
+        const response = await fetch(`${baseUrl}/v1/tenants/${tenant.id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name: newName }),
+        });
+        const updatedTenant = (await response.json()) as TenantDTO;
+
+        expect(response.status).toBe(200);
+        expect(updatedTenant.name).toBe(newName);
+      });
+
+      it("returns 400 for non-existent tenant", async () => {
+        const response = await fetch(`${baseUrl}/v1/tenants/non-existent-id`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name: "New Name" }),
+        });
+
+        expect(response.status).toBe(400);
+      });
+    });
+
+    describe("GET /v1/tenants", () => {
       it("lists all tenants", async () => {
         await createTenant();
 
-        const response = await fetch(`${baseUrl}/show-tenants`);
+        const response = await fetch(`${baseUrl}/v1/tenants`);
         const tenants = (await response.json()) as TenantDTO[];
 
         expect(response.status).toBe(200);
@@ -105,39 +153,46 @@ describe("API Endpoints", () => {
       });
     });
 
-    describe("GET /send-user-tenant/:email", () => {
-      it("gets tenant by user email", async () => {
+    describe("GET /v1/tenants/:id", () => {
+      it("gets tenant by id", async () => {
         const tenant = await createTenant();
-        await createUser({ tenantId: tenant.id });
 
-        const response = await fetch(`${baseUrl}/send-user-tenant/test@example.com`);
+        const response = await fetch(`${baseUrl}/v1/tenants/${tenant.id}`);
         const fetchedTenant = (await response.json()) as TenantDTO;
 
         expect(response.status).toBe(200);
         expect(fetchedTenant.id).toBe(tenant.id);
         expect(fetchedTenant.name).toBe(tenant.name);
+        expect(fetchedTenant.createdAt).toBeDefined();
+        expect(fetchedTenant.updatedAt).toBeDefined();
       });
 
-      it("returns 404 for non-existent user", async () => {
-        const response = await fetch(`${baseUrl}/send-user-tenant/nonexistent@example.com`);
-        const result = (await response.json()) as ErrorDTO;
+      it("returns 404 for non-existent tenant", async () => {
+        const response = await fetch(`${baseUrl}/v1/tenants/non-existent-id`);
+        const error = (await response.json()) as ErrorDTO;
 
         expect(response.status).toBe(404);
-        expect(result.error).toBe("Not Found");
-        expect(result.statusCode).toBe("404");
-        expect(result.messages).toEqual(["Tenant not found"]);
+        expect(error.messages).toEqual(["Tenant not found"]);
       });
     });
 
-    describe("POST /delete-tenant", () => {
-      it("deletes a tenant by name", async () => {
+    describe("DELETE /v1/tenants/:id", () => {
+      it("deletes a tenant by id", async () => {
         const tenant = await createTenant();
 
-        const response = await fetch(`${baseUrl}/delete-tenant?name=${tenant.name}`, {
-          method: "POST",
+        const response = await fetch(`${baseUrl}/v1/tenants/${tenant.id}`, {
+          method: "DELETE",
         });
 
         expect(response.status).toBe(200);
+      });
+
+      it("returns 400 for non-existent tenant", async () => {
+        const response = await fetch(`${baseUrl}/v1/tenants/non-existent-id`, {
+          method: "DELETE",
+        });
+
+        expect(response.status).toBe(400);
       });
     });
   });
@@ -201,25 +256,14 @@ describe("API Endpoints", () => {
         expect(fetchedUser.createdAt).toBeDefined();
         expect(fetchedUser.updatedAt).toBeDefined();
       });
-    });
-  });
 
-  describe("PUT /put-user-to-tenant/:email/:name", () => {
-    it("assigns user to a different tenant", async () => {
-      const tenant1 = await createTenant({ name: "FirstTenant" });
-      const tenant2 = await createTenant({ name: "SecondTenant" });
-      await createUser({ tenantId: tenant1.id });
+      it("returns 404 for non-existent user", async () => {
+        const response = await fetch(`${baseUrl}/v1/users/non-existent-id`);
+        const error = (await response.json()) as ErrorDTO;
 
-      const response = await fetch(
-        `${baseUrl}/put-user-to-tenant/test@example.com/${tenant2.name}`,
-        {
-          method: "PUT",
-        }
-      );
-      const result = (await response.json()) as UserDTO;
-
-      expect(response.status).toBe(200);
-      expect(result.tenantId).toBe(tenant2.id);
+        expect(response.status).toBe(404);
+        expect(error.messages).toEqual(["User not found"]);
+      });
     });
   });
 
@@ -254,6 +298,14 @@ describe("API Endpoints", () => {
       });
 
       expect(response.status).toBe(200);
+    });
+
+    it("returns 400 for non-existent user", async () => {
+      const response = await fetch(`${baseUrl}/v1/users/non-existent-id`, {
+        method: "DELETE",
+      });
+
+      expect(response.status).toBe(400);
     });
   });
 });

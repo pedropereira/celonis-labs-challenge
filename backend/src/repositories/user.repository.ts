@@ -10,18 +10,14 @@ export class UserRepository {
     return prisma.user.findMany();
   }
 
-  async findManyByTenantName(tenantName: string): Promise<User[]> {
-    return prisma.user.findMany({
-      where: { Tenant: { name: tenantName } },
-    });
-  }
-
   async find(id: string): Promise<User | null> {
     return prisma.user.findUnique({ where: { id } });
   }
 
-  async findByEmail(email: string): Promise<User | null> {
-    return prisma.user.findUnique({ where: { email } });
+  async delete(id: string): Promise<boolean> {
+    await prisma.user.delete({ where: { id } });
+
+    return true;
   }
 
   async update(id: string, data: Partial<User>): Promise<User> {
@@ -30,15 +26,4 @@ export class UserRepository {
       data,
     });
   }
-
-  async updateByEmail(email: string, data: Partial<User>): Promise<User> {
-    return prisma.user.update({
-      where: { email },
-      data,
-    });
-  }
-
-  async delete(id: string): Promise<User> {
-    return prisma.user.delete({ where: { id } });
-  }
-} 
+}
