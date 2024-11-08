@@ -98,13 +98,25 @@ export function setupRoutes(app: Express) {
       });
   });
 
-  app.get("/make-tenant/:name", async (request: Request, response: Response) => {
-    const tenant = { name: request.params.name };
+  app.get(
+    "/make-tenant/:name",
+    (request: Request, response: Response, next: NextFunction) => {
+      validateRequest(schemas.makeTenantSchema)(request, response, next).catch(next);
+    },
+    async (request: Request, response: Response) => {
+      const tenantData = { name: request.params.name };
 
-    await prisma.tenant
-      .create({ data: tenant })
-      .then(() => response.status(200).json({ status: "success" }));
-  });
+      try {
+        const tenant = await prisma.tenant.create({ data: tenantData });
+
+        response.status(200).json(tenant);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+        response.status(400).json({ status: "error", error: errorMessage });
+      }
+    }
+  );
 
   app.put(
     "/put-user-to-tenant/:email/:name",

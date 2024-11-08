@@ -22,6 +22,12 @@ export const deleteUserSchema = z.object({
   }),
 });
 
+export const makeTenantSchema = z.object({
+  query: z.object({
+    name: z.string().min(1),
+  }),
+});
+
 export const deleteTenantSchema = z.object({
   query: z.object({
     name: z.string().min(1),
