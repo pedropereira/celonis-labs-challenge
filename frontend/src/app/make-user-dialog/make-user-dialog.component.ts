@@ -54,7 +54,7 @@ export class MakeUserDialogComponent implements OnInit {
         this.userCreated = true;
         setTimeout(() => {
           this.dialogRef.close(true);
-        }, 1500);
+        }, 1000);
       },
       (error) => {
         console.error('Error creating user:', error);
