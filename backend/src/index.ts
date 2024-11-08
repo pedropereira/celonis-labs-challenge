@@ -1,5 +1,5 @@
-import { app } from './app';
-import { setupRoutes } from './routes';
+import { app } from "./app";
+import { setupRoutes } from "./routes";
 
 setupRoutes(app);
 
