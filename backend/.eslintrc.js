@@ -13,13 +13,7 @@ module.exports = {
   },
   plugins: ["@typescript-eslint"],
   root: true,
-  ignorePatterns: [
-    "**/node_modules/**/*",
-    "**/dist/**/*",
-    ".eslintrc.js",
-    "jest.config.ts",
-    "cucumber.js",
-  ],
+  ignorePatterns: ["**/node_modules/**/*", "**/dist/**/*", ".eslintrc.js", "jest.config.ts"],
   rules: {
     "@typescript-eslint/no-unsafe-member-access": "off",
     "@typescript-eslint/no-non-null-assertion": "off",
