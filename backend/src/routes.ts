@@ -120,44 +120,13 @@ export function setupRoutes(app: Express) {
     }
   );
 
-  app.get(
-    "/send-user-tenant/:email",
-    async (request: Request, response: Response<TenantDTO | ErrorDTO>) => {
-      try {
-        const user = await userRepository.findByEmail(request.params.email);
-        if (user?.tenantId) {
-          const tenant = await tenantRepository.findById(user.tenantId);
-          if (tenant) {
-            response.status(200).json(tenant);
-          } else {
-            response
-              .status(404)
-              .json({ error: "Not Found", statusCode: "404", messages: ["Tenant not found"] });
-          }
-        } else {
-          response.status(404).json({
-            error: "Not Found",
-            statusCode: "404",
-            messages: ["Tenant not found"],
-          });
-        }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
-
-        response
-          .status(400)
-          .json({ error: "Bad Request", statusCode: "400", messages: [errorMessage] });
-      }
-    }
-  );
-
-  app.get(
-    "/make-tenant/:name",
+  app.post(
+    "/v1/tenants",
     (request: Request, response: Response, next: NextFunction) => {
-      validateRequest(schemas.makeTenantSchema)(request, response, next).catch(next);
+      validateRequest(schemas.createTenantSchema)(request, response, next).catch(next);
     },
     async (request: Request, response: Response<TenantDTO | ErrorDTO>) => {
-      const tenantData = { name: request.params.name };
+      const tenantData = { name: request.body.name as string };
 
       try {
         const tenant = await tenantRepository.create(tenantData);
@@ -173,28 +142,53 @@ export function setupRoutes(app: Express) {
     }
   );
 
-  app.put(
-    "/put-user-to-tenant/:email/:name",
+  app.get("/v1/tenants", async (_request: Request, response: Response<TenantDTO[] | ErrorDTO>) => {
+    try {
+      const tenants = await tenantRepository.findMany();
+
+      response.status(200).json(tenants);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+      response
+        .status(400)
+        .json({ error: "Bad Request", statusCode: "400", messages: [errorMessage] });
+    }
+  });
+
+  app.get("/v1/tenants/:id", async (request: Request, response: Response<TenantDTO | ErrorDTO>) => {
+    try {
+      const tenant = await tenantRepository.find(request.params.id);
+
+      if (tenant) {
+        response.status(200).json(tenant);
+      } else {
+        response
+          .status(404)
+          .json({ error: "Not Found", statusCode: "404", messages: ["Tenant not found"] });
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+      response
+        .status(400)
+        .json({ error: "Bad Request", statusCode: "400", messages: [errorMessage] });
+    }
+  });
+
+  app.patch(
+    "/v1/tenants/:id",
     (request: Request, response: Response, next: NextFunction) => {
-      validateRequest(schemas.putUserToTenantSchema)(request, response, next).catch(next);
+      validateRequest(schemas.updateTenantSchema)(request, response, next).catch(next);
     },
-    async (request: Request, response: Response<UserDTO | ErrorDTO>) => {
-      const { email, name } = request.params;
+    async (request: Request, response: Response<TenantDTO | ErrorDTO>) => {
+      const tenantId = request.params.id;
+      const tenantData = { name: request.body.name as string };
 
       try {
-        const tenant = await tenantRepository.findByName(name);
+        const tenant = await tenantRepository.update(tenantId, tenantData);
 
-        if (!tenant) {
-          response
-            .status(404)
-            .json({ error: "Not Found", statusCode: "404", messages: ["Tenant not found"] });
-
-          return;
-        }
-
-        const updatedUser = await userRepository.updateByEmail(email, { tenantId: tenant.id });
-
-        response.status(200).json(updatedUser);
+        response.status(200).json(tenant);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
@@ -205,33 +199,16 @@ export function setupRoutes(app: Express) {
     }
   );
 
-  app.get(
-    "/show-tenants",
-    async (_request: Request, response: Response<TenantDTO[] | ErrorDTO>) => {
-      try {
-        const tenants = await tenantRepository.findMany();
-
-        response.status(200).json(tenants);
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
-
-        response
-          .status(400)
-          .json({ error: "Bad Request", statusCode: "400", messages: [errorMessage] });
-      }
-    }
-  );
-
-  app.post(
-    "/delete-tenant",
+  app.delete(
+    "/v1/tenants/:id",
     (request: Request, response: Response, next: NextFunction) => {
       validateRequest(schemas.deleteTenantSchema)(request, response, next).catch(next);
     },
     async (request: Request, response: Response<null | ErrorDTO>) => {
-      const tenantName = request.query.name as string;
+      const tenantId = request.params.id;
 
       try {
-        await tenantRepository.deleteByName(tenantName);
+        await tenantRepository.delete(tenantId);
 
         response.status(200).end();
       } catch (error) {

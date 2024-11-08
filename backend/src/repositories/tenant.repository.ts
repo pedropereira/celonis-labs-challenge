@@ -10,17 +10,17 @@ export class TenantRepository {
     return prisma.tenant.findMany();
   }
 
-  async findById(id: string): Promise<Tenant | null> {
+  async find(id: string): Promise<Tenant | null> {
     return prisma.tenant.findUnique({ where: { id } });
   }
 
-  async findByName(name: string): Promise<Tenant | null> {
-    return prisma.tenant.findFirst({ where: { name } });
-  }
-
-  async deleteByName(name: string): Promise<boolean> {
-    await prisma.tenant.deleteMany({ where: { name } });
+  async delete(id: string): Promise<boolean> {
+    await prisma.tenant.delete({ where: { id } });
 
     return true;
+  }
+
+  async update(id: string, data: { name: string }): Promise<Tenant> {
+    return prisma.tenant.update({ where: { id }, data });
   }
 }
