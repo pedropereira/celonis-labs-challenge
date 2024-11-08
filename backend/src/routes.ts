@@ -1,10 +1,14 @@
 import { Express, Request, Response, NextFunction } from "express";
-import { prisma } from "./prisma";
 import * as schemas from "./schemas";
 import { validateRequest } from "./middleware";
 import { ErrorDTO, TenantDTO, UserDTO } from "./dtos";
+import { UserRepository } from "./repositories/user.repository";
+import { TenantRepository } from "./repositories/tenant.repository";
 
 export function setupRoutes(app: Express) {
+  const userRepository = new UserRepository();
+  const tenantRepository = new TenantRepository();
+
   app.get("/", (_request: Request, response: Response) => {
     response.status(200).json({ healthy: true });
   });
@@ -22,7 +26,7 @@ export function setupRoutes(app: Express) {
       };
 
       try {
-        const user = await prisma.user.create({ data: userData });
+        const user = await userRepository.create(userData);
 
         response.status(201).json(user);
       } catch (error) {
@@ -37,7 +41,7 @@ export function setupRoutes(app: Express) {
 
   app.get("/list-users", async (_request: Request, response: Response<UserDTO[] | ErrorDTO>) => {
     try {
-      const users = await prisma.user.findMany();
+      const users = await userRepository.findMany();
 
       response.status(200).json(users);
     } catch (error) {
@@ -53,9 +57,7 @@ export function setupRoutes(app: Express) {
     "/list-users/:name",
     async (request: Request, response: Response<UserDTO[] | ErrorDTO>) => {
       try {
-        const users = await prisma.user.findMany({
-          where: { Tenant: { name: request.params.name } },
-        });
+        const users = await userRepository.findManyByTenantName(request.params.name);
 
         response.status(200).json(users);
       } catch (error) {
@@ -70,7 +72,7 @@ export function setupRoutes(app: Express) {
 
   app.get("/show-user/:id", async (request: Request, response: Response<UserDTO | ErrorDTO>) => {
     try {
-      const user = await prisma.user.findUnique({ where: { id: request.params.id } });
+      const user = await userRepository.findById(request.params.id);
 
       if (user) {
         response.status(200).json(user);
@@ -90,7 +92,7 @@ export function setupRoutes(app: Express) {
 
   app.get("/send-user/:email", async (request: Request, response: Response<UserDTO | ErrorDTO>) => {
     try {
-      const user = await prisma.user.findUnique({ where: { email: request.params.email } });
+      const user = await userRepository.findByEmail(request.params.email);
 
       if (user) {
         response.status(200).json(user);
@@ -112,11 +114,9 @@ export function setupRoutes(app: Express) {
     "/send-user-tenant/:email",
     async (request: Request, response: Response<TenantDTO | ErrorDTO>) => {
       try {
-        const user = await prisma.user.findUnique({ where: { email: request.params.email } });
-
+        const user = await userRepository.findByEmail(request.params.email);
         if (user?.tenantId) {
-          const tenant = await prisma.tenant.findUnique({ where: { id: user.tenantId } });
-
+          const tenant = await tenantRepository.findById(user.tenantId);
           if (tenant) {
             response.status(200).json(tenant);
           } else {
@@ -150,7 +150,7 @@ export function setupRoutes(app: Express) {
       const tenantData = { name: request.params.name };
 
       try {
-        const tenant = await prisma.tenant.create({ data: tenantData });
+        const tenant = await tenantRepository.create(tenantData);
 
         response.status(201).json(tenant);
       } catch (error) {
@@ -172,7 +172,7 @@ export function setupRoutes(app: Express) {
       const { email, name } = request.params;
 
       try {
-        const tenant = await prisma.tenant.findFirst({ where: { name } });
+        const tenant = await tenantRepository.findByName(name);
 
         if (!tenant) {
           response
@@ -182,10 +182,7 @@ export function setupRoutes(app: Express) {
           return;
         }
 
-        const updatedUser = await prisma.user.update({
-          where: { email },
-          data: { tenantId: tenant.id },
-        });
+        const updatedUser = await userRepository.updateByEmail(email, { tenantId: tenant.id });
 
         response.status(200).json(updatedUser);
       } catch (error) {
@@ -202,7 +199,7 @@ export function setupRoutes(app: Express) {
     "/show-tenants",
     async (_request: Request, response: Response<TenantDTO[] | ErrorDTO>) => {
       try {
-        const tenants = await prisma.tenant.findMany();
+        const tenants = await tenantRepository.findMany();
 
         response.status(200).json(tenants);
       } catch (error) {
@@ -227,10 +224,7 @@ export function setupRoutes(app: Express) {
       };
 
       try {
-        const user = await prisma.user.update({
-          where: { id: userId },
-          data: userData,
-        });
+        const user = await userRepository.update(userId, userData);
 
         response.status(200).json(user);
       } catch (error) {
@@ -252,7 +246,7 @@ export function setupRoutes(app: Express) {
       const userEmail = request.query.email as string;
 
       try {
-        await prisma.user.delete({ where: { email: userEmail } });
+        await userRepository.deleteByEmail(userEmail);
 
         response.status(200).end();
       } catch (error) {
@@ -274,7 +268,7 @@ export function setupRoutes(app: Express) {
       const tenantName = request.query.name as string;
 
       try {
-        await prisma.tenant.deleteMany({ where: { name: tenantName } });
+        await tenantRepository.deleteByName(tenantName);
 
         response.status(200).end();
       } catch (error) {
