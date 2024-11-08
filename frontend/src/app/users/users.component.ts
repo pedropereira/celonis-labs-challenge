@@ -33,7 +33,9 @@ export class UsersComponent implements OnInit {
     this.dialog.open(MakeUserDialogComponent)
   }
 
-  deleteUser(user: any) {
+  deleteUser(user: any, event: Event) {
+    event.preventDefault();
+    event.stopPropagation();
     this.http.post("http://localhost:3000/delete-user?email=" + user.email, null).subscribe(() => {
       const users = this.users;
       users.splice(users.indexOf(user), 1);
