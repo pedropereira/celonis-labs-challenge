@@ -9,15 +9,27 @@ describe('API Endpoints', () => {
   const baseUrl = `http://localhost:${port}`;
 
   const createTestTenant = async () => {
-    const response = await fetch(`${baseUrl}/make-tenant/TestTenant`);
-    return response;
+    const tenant = await prisma.tenant.create({
+      data: {
+        id: '00c0e1b4-2140-42ea-b82e-0970428352f1',
+        name: 'TestTenant',
+      },
+    });
+
+    return tenant;
   };
 
-  const createTestUser = async () => {
-    const response = await fetch(
-      `${baseUrl}/make-user/test@example.com?name=Test User&tenantId=1`
-    );
-    return response;
+  const createTestUser = async (tenantId?: string) => {
+    const user = await prisma.user.create({
+      data: {
+        id: '270c8d1e-3dc5-44d2-8e59-ccb9c2722e95',
+        email: 'test@example.com',
+        name: 'Test User',
+        tenantId: tenantId || '00c0e1b4-2140-42ea-b82e-0970428352f1'
+      },
+    });
+
+    return user;
   };
 
   beforeAll((done) => {
@@ -47,7 +59,7 @@ describe('API Endpoints', () => {
   describe('Tenant Endpoints', () => {
     describe('POST /make-tenant', () => {
       it('creates a new tenant', async () => {
-        const response = await createTestTenant();
+        const response = await fetch(`${baseUrl}/make-tenant/TestTenant`);
         const data = await response.json();
 
         expect(response.status).toBe(200);
@@ -63,8 +75,7 @@ describe('API Endpoints', () => {
         const tenants = await response.json();
 
         expect(response.status).toBe(200);
-        expect(Array.isArray(tenants)).toBeTruthy();
-        expect(tenants.length).toBeGreaterThan(0);
+        expect(tenants.length).toBe(1);
       });
     });
   });
@@ -72,13 +83,22 @@ describe('API Endpoints', () => {
   describe('User Endpoints', () => {
     describe('POST /make-user', () => {
       it('creates a new user', async () => {
-        await createTestTenant();
+        const tenant = await createTestTenant();
+        const userName = 'Test User';
+        const userEmail = 'test@example.com';
 
-        const response = await createTestUser();
-        const data = await response.json();
+        const response = await fetch(
+          `${baseUrl}/make-user/${userEmail}?name=${userName}&tenantId=${tenant.id}`
+        );
+        const user = await response.json();
 
         expect(response.status).toBe(200);
-        expect(data).toEqual({ status: 'success' });
+        expect(user.id).toBeDefined();
+        expect(user.email).toBe(userEmail);
+        expect(user.name).toBe(userName);
+        expect(user.tenantId).toBe(tenant.id);
+        expect(user.createdAt).toBeDefined();
+        expect(user.updatedAt).toBeDefined();
       });
     });
 
@@ -91,7 +111,6 @@ describe('API Endpoints', () => {
         const users = await response.json();
 
         expect(response.status).toBe(200);
-        expect(Array.isArray(users)).toBeTruthy();
         expect(users.length).toBe(1);
       });
     });
