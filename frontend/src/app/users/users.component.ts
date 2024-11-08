@@ -25,12 +25,10 @@ export class UsersComponent implements OnInit {
     this.http.get("http://localhost:3000/v1/users").subscribe((users) => {
       this.users = users;
       this.users.forEach((user: any) => {
-        this.http
-          .get(`http://localhost:3000/send-user-tenant/${user.email}`)
-          .subscribe((tenant) => {
-            user.tenant = tenant;
-            this.cd.detectChanges();
-          });
+        this.http.get(`http://localhost:3000/v1/tenants/${user.tenantId}`).subscribe((tenant) => {
+          user.tenant = tenant;
+          this.cd.detectChanges();
+        });
       });
     });
   }
