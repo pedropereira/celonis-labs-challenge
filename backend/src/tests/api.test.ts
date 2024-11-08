@@ -1,9 +1,9 @@
-import { app } from '../app';
-import http from 'http';
-import { expect, it, describe, beforeAll, beforeEach, afterAll } from '@jest/globals';
-import { prisma } from '../prisma';
+import { app } from "../app";
+import http from "http";
+import { expect, it, describe, beforeAll, beforeEach, afterAll } from "@jest/globals";
+import { prisma } from "../prisma";
 
-describe('API Endpoints', () => {
+describe("API Endpoints", () => {
   let server: http.Server;
   const port = 3001;
   const baseUrl = `http://localhost:${port}`;
@@ -11,8 +11,8 @@ describe('API Endpoints', () => {
   const createTestTenant = async () => {
     const tenant = await prisma.tenant.create({
       data: {
-        id: '00c0e1b4-2140-42ea-b82e-0970428352f1',
-        name: 'TestTenant',
+        id: "00c0e1b4-2140-42ea-b82e-0970428352f1",
+        name: "TestTenant",
       },
     });
 
@@ -22,10 +22,10 @@ describe('API Endpoints', () => {
   const createTestUser = async (tenantId?: string) => {
     const user = await prisma.user.create({
       data: {
-        id: '270c8d1e-3dc5-44d2-8e59-ccb9c2722e95',
-        email: 'test@example.com',
-        name: 'Test User',
-        tenantId: tenantId || '00c0e1b4-2140-42ea-b82e-0970428352f1'
+        id: "270c8d1e-3dc5-44d2-8e59-ccb9c2722e95",
+        email: "test@example.com",
+        name: "Test User",
+        tenantId: tenantId ?? "00c0e1b4-2140-42ea-b82e-0970428352f1",
       },
     });
 
@@ -46,7 +46,7 @@ describe('API Endpoints', () => {
     await new Promise<void>((resolve, reject) => {
       server.close((err) => {
         if (err) {
-          console.error('Error closing the server:', err);
+          console.error("Error closing the server:", err);
           reject(err);
         } else {
           resolve();
@@ -56,22 +56,24 @@ describe('API Endpoints', () => {
   });
 
   // Tenant endpoint tests
-  describe('Tenant Endpoints', () => {
-    describe('POST /make-tenant', () => {
-      it('creates a new tenant', async () => {
+  describe("Tenant Endpoints", () => {
+    describe("POST /make-tenant", () => {
+      it("creates a new tenant", async () => {
         const response = await fetch(`${baseUrl}/make-tenant/TestTenant`);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const data = await response.json();
 
         expect(response.status).toBe(200);
-        expect(data.status).toBe('success');
+        expect(data.status).toBe("success");
       });
     });
 
-    describe('GET /show-tenants', () => {
-      it('lists all tenants', async () => {
+    describe("GET /show-tenants", () => {
+      it("lists all tenants", async () => {
         await createTestTenant();
 
         const response = await fetch(`${baseUrl}/show-tenants`);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const tenants = await response.json();
 
         expect(response.status).toBe(200);
@@ -80,16 +82,17 @@ describe('API Endpoints', () => {
     });
   });
 
-  describe('User Endpoints', () => {
-    describe('POST /make-user', () => {
-      it('creates a new user', async () => {
+  describe("User Endpoints", () => {
+    describe("POST /make-user", () => {
+      it("creates a new user", async () => {
         const tenant = await createTestTenant();
-        const userName = 'Test User';
-        const userEmail = 'test@example.com';
+        const userName = "Test User";
+        const userEmail = "test@example.com";
 
         const response = await fetch(
           `${baseUrl}/make-user/${userEmail}?name=${userName}&tenantId=${tenant.id}`
         );
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const user = await response.json();
 
         expect(response.status).toBe(200);
@@ -102,12 +105,13 @@ describe('API Endpoints', () => {
       });
     });
 
-    describe('GET /list-users', () => {
-      it('lists all users', async () => {
+    describe("GET /list-users", () => {
+      it("lists all users", async () => {
         await createTestTenant();
         await createTestUser();
 
         const response = await fetch(`${baseUrl}/list-users`);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const users = await response.json();
 
         expect(response.status).toBe(200);
@@ -115,16 +119,17 @@ describe('API Endpoints', () => {
       });
     });
 
-    describe('GET /send-user', () => {
-      it('gets user by email', async () => {
+    describe("GET /send-user", () => {
+      it("gets user by email", async () => {
         await createTestTenant();
         await createTestUser();
 
         const response = await fetch(`${baseUrl}/send-user/test@example.com`);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const user = await response.json();
 
         expect(response.status).toBe(200);
-        expect(user.email).toBe('test@example.com');
+        expect(user.email).toBe("test@example.com");
       });
     });
   });
