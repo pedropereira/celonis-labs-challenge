@@ -17,7 +17,7 @@ export class UsersComponent implements OnInit {
 
   }
 
-  async ngOnInit() {
+  loadUsers() {
     this.http.get("http://localhost:3000/list-users").subscribe((users) => {
       this.users = users;
       this.users.forEach((user: any) => {
@@ -29,15 +29,28 @@ export class UsersComponent implements OnInit {
     })
   }
 
-  makeUser() {
-    this.dialog.open(MakeUserDialogComponent)
+  ngOnInit() {
+    this.loadUsers();
   }
 
-  deleteUser(user: any) {
+  makeUser() {
+    const dialogRef = this.dialog.open(MakeUserDialogComponent);
+    dialogRef.afterClosed().subscribe(result => {
+      if (result === true) {
+        this.loadUsers();
+      }
+    });
+  }
+
+  deleteUser(user: any, event: Event) {
+    event.preventDefault();
+    event.stopPropagation();
+
     this.http.post("http://localhost:3000/delete-user?email=" + user.email, null).subscribe(() => {
-      const users = this.users;
+      const users = [...this.users];
       users.splice(users.indexOf(user), 1);
       this.users = users;
-    })
+      this.cd.detectChanges();
+    });
   }
 }
