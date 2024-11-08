@@ -45,57 +45,59 @@ export function setupRoutes(app: Express) {
   });
 
   app.get("/list-users/:name", async (request: Request, response: Response) => {
-    await prisma.user
-      .findMany({ where: { Tenant: { name: request.params.name } } })
-      .then((users) => response.status(200).json(users))
-      .catch((error) => {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
-
-        response.status(400).json({ status: "error", error: errorMessage });
+    try {
+      const users = await prisma.user.findMany({
+        where: { Tenant: { name: request.params.name } },
       });
+
+      response.status(200).json(users);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+      response.status(400).json({ status: "error", error: errorMessage });
+    }
   });
 
   app.get("/show-user/:id", async (request: Request, response: Response) => {
-    await prisma.user
-      .findUnique({ where: { id: request.params.id } })
-      .then((user) => response.status(200).json(user))
-      .catch((error) => {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    try {
+      const user = await prisma.user.findUnique({ where: { id: request.params.id } });
 
-        response.status(400).json({ status: "error", error: errorMessage });
-      });
+      response.status(200).json(user);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+      response.status(400).json({ status: "error", error: errorMessage });
+    }
   });
 
   app.get("/send-user/:email", async (request: Request, response: Response) => {
-    await prisma.user
-      .findUnique({ where: { email: request.params.email } })
-      .then((user) => response.status(200).json(user))
-      .catch((error) => {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    try {
+      const user = await prisma.user.findUnique({ where: { email: request.params.email } });
 
-        response.status(400).json({ status: "error", error: errorMessage });
-      });
+      response.status(200).json(user);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+      response.status(400).json({ status: "error", error: errorMessage });
+    }
   });
 
   app.get("/send-user-tenant/:email", async (request: Request, response: Response) => {
-    await prisma.user
-      .findUnique({ where: { email: request.params.email } })
-      .then((user) => {
-        if (user?.tenantId) {
-          return prisma.tenant
-            .findUnique({
-              where: { id: user.tenantId },
-            })
-            .then((tenant) => response.json(tenant));
-        } else {
-          response.status(404).json({ status: "error", error: "User or tenantId not found" });
-        }
-      })
-      .catch((error) => {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    try {
+      const user = await prisma.user.findUnique({ where: { email: request.params.email } });
 
-        response.status(400).json({ status: "error", error: errorMessage });
-      });
+      if (user?.tenantId) {
+        const tenant = await prisma.tenant.findUnique({ where: { id: user.tenantId } });
+
+        response.status(200).json(tenant);
+      } else {
+        response.status(404).json({ status: "error", error: "User or tenantId not found" });
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+      response.status(400).json({ status: "error", error: errorMessage });
+    }
   });
 
   app.get(
@@ -135,12 +137,12 @@ export function setupRoutes(app: Express) {
           return;
         }
 
-        await prisma.user.update({
+        const updatedUser = await prisma.user.update({
           where: { email },
-          data: { Tenant: { connect: { id: tenant.id } } },
+          data: { tenantId: tenant.id },
         });
 
-        response.status(200).json({ status: "success" });
+        response.status(200).json(updatedUser);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
@@ -150,14 +152,15 @@ export function setupRoutes(app: Express) {
   );
 
   app.get("/show-tenants", async (_request: Request, response: Response) => {
-    await prisma.tenant
-      .findMany()
-      .then((tenants) => response.status(200).json(tenants))
-      .catch((error) => {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    try {
+      const tenants = await prisma.tenant.findMany();
 
-        response.status(400).json({ status: "error", error: errorMessage });
-      });
+      response.status(200).json(tenants);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+      response.status(400).json({ status: "error", error: errorMessage });
+    }
   });
 
   app.put(
@@ -197,7 +200,7 @@ export function setupRoutes(app: Express) {
       try {
         await prisma.user.delete({ where: { email: userEmail } });
 
-        response.status(200).json({ status: "success" });
+        response.status(200).end();
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
@@ -217,7 +220,7 @@ export function setupRoutes(app: Express) {
       try {
         await prisma.tenant.deleteMany({ where: { name: tenantName } });
 
-        response.status(200).json({ status: "success" });
+        response.status(200).end();
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
