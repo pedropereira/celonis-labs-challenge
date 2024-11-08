@@ -125,7 +125,7 @@ describe("API Endpoints", () => {
         expect(response.status).toBe(404);
         expect(result.error).toBe("Not Found");
         expect(result.statusCode).toBe("404");
-        expect(result.messages).toContain("User or tenantId not found");
+        expect(result.messages).toEqual(["Tenant not found"]);
       });
     });
 
@@ -143,15 +143,23 @@ describe("API Endpoints", () => {
   });
 
   describe("User Endpoints", () => {
-    describe("POST /make-user", () => {
+    describe("POST /v1/users", () => {
       it("creates a new user", async () => {
         const tenant = await createTenant();
         const userName = "Test User";
         const userEmail = "test@example.com";
 
-        const response = await fetch(
-          `${baseUrl}/make-user/${userEmail}?name=${userName}&tenantId=${tenant.id}`
-        );
+        const response = await fetch(`${baseUrl}/v1/users`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: userEmail,
+            name: userName,
+            tenantId: tenant.id,
+          }),
+        });
         const user = (await response.json()) as UserDTO;
 
         expect(response.status).toBe(201);
@@ -164,12 +172,12 @@ describe("API Endpoints", () => {
       });
     });
 
-    describe("GET /list-users", () => {
+    describe("GET /v1/users", () => {
       it("lists all users", async () => {
         const tenant = await createTenant();
         await createUser({ tenantId: tenant.id });
 
-        const response = await fetch(`${baseUrl}/list-users`);
+        const response = await fetch(`${baseUrl}/v1/users`);
         const users = (await response.json()) as UserDTO[];
 
         expect(response.status).toBe(200);
@@ -177,45 +185,22 @@ describe("API Endpoints", () => {
       });
     });
 
-    describe("GET /send-user", () => {
-      it("gets user by email", async () => {
+    describe("GET /v1/users/:id", () => {
+      it("gets user by id", async () => {
         const tenant = await createTenant();
-        await createUser({ tenantId: tenant.id });
+        const user = await createUser({ tenantId: tenant.id });
 
-        const response = await fetch(`${baseUrl}/send-user/test@example.com`);
-        const user = (await response.json()) as UserDTO;
+        const response = await fetch(`${baseUrl}/v1/users/${user.id}`);
+        const fetchedUser = (await response.json()) as UserDTO;
 
         expect(response.status).toBe(200);
-        expect(user.email).toBe("test@example.com");
+        expect(fetchedUser.id).toBe(user.id);
+        expect(fetchedUser.email).toBe(user.email);
+        expect(fetchedUser.name).toBe(user.name);
+        expect(fetchedUser.tenantId).toBe(tenant.id);
+        expect(fetchedUser.createdAt).toBeDefined();
+        expect(fetchedUser.updatedAt).toBeDefined();
       });
-    });
-  });
-
-  describe("GET /list-users/:name", () => {
-    it("lists users by tenant name", async () => {
-      const tenant = await createTenant();
-      await createUser({ tenantId: tenant.id });
-
-      const response = await fetch(`${baseUrl}/list-users/${tenant.name}`);
-      const users = (await response.json()) as UserDTO[];
-
-      expect(response.status).toBe(200);
-      expect(users.length).toBe(1);
-      expect(users[0].tenantId).toBe(tenant.id);
-    });
-  });
-
-  describe("GET /show-user/:id", () => {
-    it("gets user by id", async () => {
-      const tenant = await createTenant();
-      const user = await createUser({ tenantId: tenant.id });
-
-      const response = await fetch(`${baseUrl}/show-user/${user.id}`);
-      const fetchedUser = (await response.json()) as UserDTO;
-
-      expect(response.status).toBe(200);
-      expect(fetchedUser.id).toBe(user.id);
-      expect(fetchedUser.email).toBe(user.email);
     });
   });
 
@@ -238,14 +223,18 @@ describe("API Endpoints", () => {
     });
   });
 
-  describe("PUT /update-user/:id", () => {
+  describe("PATCH /v1/users/:id", () => {
     it("updates user name", async () => {
       const tenant = await createTenant();
       const user = await createUser({ tenantId: tenant.id });
       const newName = "Updated Name";
 
-      const response = await fetch(`${baseUrl}/update-user/${user.id}?name=${newName}`, {
-        method: "PUT",
+      const response = await fetch(`${baseUrl}/v1/users/${user.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name: newName }),
       });
       const updatedUser = (await response.json()) as UserDTO;
 
@@ -255,13 +244,13 @@ describe("API Endpoints", () => {
     });
   });
 
-  describe("POST /delete-user", () => {
-    it("deletes a user by email", async () => {
+  describe("DELETE /v1/users/:id", () => {
+    it("deletes a user by id", async () => {
       const tenant = await createTenant();
       const user = await createUser({ tenantId: tenant.id });
 
-      const response = await fetch(`${baseUrl}/delete-user?email=${user.email}`, {
-        method: "POST",
+      const response = await fetch(`${baseUrl}/v1/users/${user.id}`, {
+        method: "DELETE",
       });
 
       expect(response.status).toBe(200);
