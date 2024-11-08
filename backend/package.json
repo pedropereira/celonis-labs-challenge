@@ -9,7 +9,7 @@
     "start": "ts-node src/index.ts",
     "postinstall": "cd ../../../ && npx husky install ./server-code/services/template/.husky",
     "test:setup": "npx dotenv-cli -o -e .env.test -- npx prisma db push",
-    "test": "yarn test:setup && npx dotenv-cli -o -e .env.test -- jest"
+    "test": "yarn test:setup && npx dotenv-cli -o -e .env.test -- jest --config jest.config.ts"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
