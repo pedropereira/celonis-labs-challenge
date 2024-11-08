@@ -36,8 +36,23 @@ npx prisma db seed
 
 ## Tests
 
-- Unit test: `yarn test:unit`
-- Integration tests: `yarn test:integration`
+The test suite needs a database to be setup but the database container defined in the docker compose file can be used for that purpose. In order to do so, it's recommended to spin up the containers with:
+
+```bash
+make up
+```
+
+Then, on a separate terminal, run the following command to get a shell into the backend container:
+
+```bash
+make shell
+```
+
+Finally within the backend container, when running the following command, everything should be setup before the tests run:
+
+```bash
+yarn test
+```
 
 ## Linting
 
