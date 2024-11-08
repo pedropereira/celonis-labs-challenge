@@ -44,17 +44,17 @@ export class MakeUserDialogComponent implements OnInit {
   createUser() {
     this.isLoading = true;
 
-    this.http.get(`http://localhost:3000/make-user/${this.email}`, {
-      params: {
-        name: this.name,
-        tenantId: this.selectedTenantId
-      }
+    this.http.post(`http://localhost:3000/v1/users`, {
+      email: this.email,
+      name: this.name,
+      tenantId: this.selectedTenantId
     }).subscribe(
       () => {
         this.userCreated = true;
+
         setTimeout(() => {
           this.dialogRef.close(true);
-        }, 1000);
+        }, 300);
       },
       (error) => {
         console.error('Error creating user:', error);

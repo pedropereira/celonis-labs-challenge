@@ -21,7 +21,7 @@ export class AddTenantComponent {
       this.tenantCreated = true;
       setTimeout(() => {
         this.dialogRef.close(true);
-      }, 1000);
+      }, 300);
     });
   }
 }
