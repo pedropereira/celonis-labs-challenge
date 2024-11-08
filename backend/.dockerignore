@@ -1,6 +1,4 @@
 node_modules
-integration-tests
 dist
 .gitignore
 cucumber.js
-jest.config.ts
