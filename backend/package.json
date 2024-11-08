@@ -45,7 +45,7 @@
     "zod": "^3.22.4"
   },
   "prisma": {
-    "seed": "node prisma/seed.js"
+    "seed": "node prisma/seed.mjs"
   },
   "lint-staged": {
     "*": [
