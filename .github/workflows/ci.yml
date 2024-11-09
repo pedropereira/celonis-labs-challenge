@@ -60,10 +60,11 @@ jobs:
         working-directory: backend
         run: yarn install
 
+      - name: Replace DB_HOST in .env.test
+        run: sed -i 's/database/localhost/' backend/.env.test
+
       - name: Run tests
         working-directory: backend
-        env:
-          DATABASE_URL: "postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}"
         run: yarn test
 
   lint:
