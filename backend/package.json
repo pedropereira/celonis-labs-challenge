@@ -6,7 +6,7 @@
     "build": "yarn build:clean && tsc",
     "build:clean": "rm -rf dist",
     "dev": "ts-node src/index.ts",
-    "format": "prettier --write --config ../.prettierrc .",
+    "format": "prettier --write --config .prettierrc .",
     "lint": "eslint .",
     "start": "ts-node src/index.ts",
     "postinstall": "cd ../../../ && npx husky install ./server-code/services/template/.husky",
